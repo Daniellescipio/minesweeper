@@ -1,0 +1,31 @@
+#gameBoard{
+    display: grid;
+    grid-template-columns: repeat(10, 30px);
+}
+.square{
+    height: 30px;
+    width: 30px;
+    background-color:blanchedalmond;
+    border: 1px solid;
+    text-align: center;
+}
+.overlay:hover{
+    background-color: rgb(134, 233, 233);
+}
+.overlay{
+    position: absolute;
+    background-color: lightcyan;
+    width: 30px;
+    height: 30px;
+    border: 1px solid;
+    z-index: 2;
+}
+.bomb{
+    position: relative;
+    width: 25px;
+    margin: 5px;
+    z-index: 1;
+}
+p{
+    margin: 7px;
+}
