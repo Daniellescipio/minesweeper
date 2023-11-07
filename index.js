@@ -7,6 +7,8 @@ const hardButton = document.getElementById("hard")
 const restartButton = document.getElementById("restart")
 //an array of pbjects that will tell each cell it's surrounding cells
 const cellPositionArray = []
+//an array to hold all of the indexes where we want a bomb placed
+const bombIndexes = []
 //to populate the board
 const levels ={
     easy: {
@@ -26,7 +28,8 @@ const levels ={
     }
 }
 let level = "easy"
-let active = false;
+let populated = false;
+let active = false
 
 const setCalculations = ()=>{
     //difference between cell indexes above and below  cell
@@ -61,8 +64,6 @@ const populateBoard = (target)=>{
     const cells = level === "easy"? [...easyBoard.children] : level === "medium" ?  [...mediumBoard.children] : [...hardBoard.children]
     //we keep track of this cell so we know the area that will need to be cleared as we populate the board with bombs
     const targetIndex = target.getAttribute("id")-1 //minus one to account for addition of one in board creation
-    //this array will hold all of the indexes where we want a bomb placed
-    const bombIndexes = []
     const calculations = setCalculations()
     //this object is all of the cells indexes that must be clear of bombs, all of the cells surrounding where the user clicked.
     const targetObj = {
@@ -109,7 +110,15 @@ const populateBoard = (target)=>{
     //now we send the square the user clicked to the same function that will be checking for bombs, it will just clear the squares around where the user clicked.
     checkBombs(target)
     //we let our program know the board is programmmed
-    active = true
+    populated = true
+}
+
+const depopulateBoard = (lev)=>{
+    const board = lev.level === "easy"?easyBoard : lev.level === "medium" ? mediumBoard :hardBoard
+    if(board.children.length>0){
+        const cells = [...board.children]
+        cells.forEach(cell=>board.removeChild(cell))
+    }
 }
 
 const getPositionObj = (cells)=>{
@@ -167,12 +176,11 @@ const getPositionObj = (cells)=>{
                     bombNum++
                 }
             }
-            //if there are no bombs, the cell will be clear if not we create a node and appen that number to it and it to the dom
+            //if there are no bombs, the cell will be clear if not we create a image node with a picture of a bomb and append that number to it and it to the dom
             bombNum = bombNum===0 ? "" : bombNum
             const numHolder = document.createElement("p")
             numHolder.textContent = bombNum
             cell.append(numHolder)
-            console.log(cell.textContent&&cellObj)
         }
     })
 }
@@ -186,12 +194,17 @@ const checkBombs=(cell)=>{
     const notBombs = cells.filter(cell=>!cell.getAttribute("bomb"))
     //if the cell we clicked is a bomb...
     if(bombs.indexOf(cell)>=0){
-        //show all the bombs, user loses
+        //show all the bombs, show the restart button, turn the board off
         bombs.forEach(bomb=>{
             bomb.querySelector(".overlay").style.display = "none"
-            console.log("game over")
+            restartButton.style.display = "block"
+            active = false
         })
     }else{
+        //the way this works in my head is when a user clicks a square, This ONLY takes the overlay off
+        //if the clicked cell is blank, so it is nowhere near a bomb, that sqaure will be revealed and this function will run recursively on every sqaure surrounding it that is also blank, it will stop when it reachs a block with a number in it. the block with the number will be next to at least one bomb. 
+        //if the clicked cell has a number in it, only that cell will be revealed.
+        //ok...now in code
         //get it's text, position object and take off it's overlay
         let text = cell.querySelector("p")
         const positionObj = cellPositionArray[cell.getAttribute("positionObj")]
@@ -212,68 +225,79 @@ const checkBombs=(cell)=>{
                         if(text && text.textContent === ""){
                             checkBombs(positionObj[key])
                         }
+                        //the actually point of the function lol
                         overLay.style.display = "none"
                     }    
                 }  
             }
         }
+        //check to see what cells still need to be uncovered
         const remainingCells = notBombs.filter(cell=>!(cell.querySelector(".overlay").style.display==="none"))
+        //if there are no more cells to be uncovered
         if(remainingCells.length<=0){
+            //turn the board green, show the restart button, turn the board off
             notBombs.map(cell=>cell.style.backgroundColor = "green")
-            console.log("won")
+            restartButton.style.display = "block"
+            active = false
         }
         
     }
 }
-
+//this is the function that will be called when the user clicks
 const bombs = (e)=>{
-    if(!active){
+    //there are no bombs until the user clicks, if it's their first click, we populate the board
+    if(!populated){
         populateBoard(e.target.parentElement)
-    }else{
+        active = true
+    //otherwise we check that cell for bombs
+    }else if(active){
         checkBombs(e.target.parentElement)
     }
 }
-
-const createBoard = ()=>{
-    for(const lev in levels){
-        for(let i = 0; i <levels[lev].cells; i++){
-            const square = document.createElement("div")
-            square.setAttribute("id", i+1)
-            square.classList.add("square")
-            const squareOverlay = document.createElement("div")
-            squareOverlay.classList.add("overlay")
-            square.append(squareOverlay)
-            squareOverlay.addEventListener("click", bombs)
-            if(levels[lev].level === "easy"){
-                easyBoard.append(square)
-            }else if(levels[lev].level === "medium"){
-                mediumBoard.append(square)
-            }else if(levels[lev].level === "hard"){
-                hardBoard.append(square)
-            }
+//create he board based on the level we are given
+const createBoard = (lev)=>{
+    depopulateBoard(lev)
+    for(let i = 0; i <lev.cells; i++){
+        const square = document.createElement("div")
+        //just so when we do math later we don't have to start at 0
+        square.setAttribute("id", i+1)
+        //cell that holds bomb or number
+        square.classList.add("square")
+        //overlay covering cell
+        const squareOverlay = document.createElement("div")
+        squareOverlay.classList.add("overlay")
+        square.append(squareOverlay)
+        squareOverlay.addEventListener("click", bombs)
+        //append to the correct board
+        if(lev.level === "easy"){
+            easyBoard.append(square)
+            easyBoard.style.display = "grid"
+            mediumBoard.style.display = "none"
+            hardBoard.style.display = "none"
+        }else if(lev.level === "medium"){
+            mediumBoard.append(square)
+            mediumBoard.style.display = "grid"
+            easyBoard.style.display = "none"
+            hardBoard.style.display = "none"
+        }else if(lev.level === "hard"){
+            hardBoard.append(square)
+            hardBoard.style.display = "grid"
+            mediumBoard.style.display = "none"
+            easyBoard.style.display = "none"
         }
     }
-    easyBoard.style.display = "grid"
-
+    populated=false
+    active = false
 }
+//set's the level based on level buttons
 const setLevel = (newLevel)=>{
+    //shows the correct board, hides the others
     level = newLevel
-    if(newLevel === "easy"){
-        easyBoard.style.display = "grid"
-        mediumBoard.style.display = "none"
-        hardBoard.style.display = "none"
-    }else if(newLevel === "medium"){
-        mediumBoard.style.display = "grid"
-        easyBoard.style.display = "none"
-        hardBoard.style.display = "none"
-    }else if(newLevel === "hard"){
-        hardBoard.style.display = "grid"
-        mediumBoard.style.display = "none"
-        easyBoard.style.display = "none"
-    }
+    createBoard(levels[newLevel])
+
 }
 easyButton.addEventListener("click", ()=>setLevel("easy") )
 mediumButton.addEventListener("click", ()=>setLevel("medium") )
 hardButton.addEventListener("click", ()=>setLevel("hard") )
 
-createBoard()
+createBoard(levels.easy)
