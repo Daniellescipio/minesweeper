@@ -1,7 +1,16 @@
-#gameBoard{
-    display: grid;
+#easyGameBoard{
+    display: none;
     grid-template-columns: repeat(10, 30px);
 }
+#mediumGameBoard{
+    display: none;
+    grid-template-columns: repeat(16, 30px);
+}
+#hardGameBoard{
+    display: none;
+    grid-template-columns: repeat(24, 30px);
+}
+
 .square{
     height: 30px;
     width: 30px;
@@ -28,4 +37,7 @@
 }
 p{
     margin: 7px;
+}
+#restart{
+    display: none;
 }
